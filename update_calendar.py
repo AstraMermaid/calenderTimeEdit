@@ -1,6 +1,7 @@
 import re
 import icalendar
 import requests
+import sys
 
 # --- CONFIGURATION ---
 ICS_URL = "https://cloud.timeedit.net/bth/web/sched1/ri67oQ5y6X2Z8QQ579895ZQ5ylZ135y2ZX4Y255Q827Xq5l9X0W16Tuo71XVnXol5X896oW8Z5469oogZXb8mcXX9W7W223WQXbqQ5r0ZQQbeZ6u61cn.ics"
@@ -52,18 +53,16 @@ def modify_event(event):
 
 def main():
     try:
-        print(f"Fetching calendar from {ICS_URL}...")
+        print("Starting calendar update...")
         response = requests.get(ICS_URL)
-        response.raise_for_status() # This will catch URL errors
+        response.raise_for_status()
         
         cal = icalendar.Calendar.from_ical(response.content)
         new_cal = icalendar.Calendar()
         
-        # Copy headers
         for key, value in cal.items():
             new_cal.add(key, value)
 
-        # Process events
         for component in cal.walk('VEVENT'):
             modified = modify_event(component)
             if modified:
@@ -71,11 +70,11 @@ def main():
 
         with open(OUTPUT_FILE, 'wb') as f:
             f.write(new_cal.to_ical())
-        print("✨ Success! modified_calendar.ics has been created.")
+        print(f"✨ Success! {OUTPUT_FILE} created.")
         
     except Exception as e:
-        print(f"❌ Error during execution: {e}")
-        exit(1) # This tells GitHub that the script failed
+        print(f"❌ Error: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
