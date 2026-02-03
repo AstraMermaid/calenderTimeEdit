@@ -22,7 +22,9 @@ NAME_MAP = {
 def modify_event(event):
     summary = str(event.get('summary', ''))
     description = str(event.get('description', ''))
+    location = str(event.get('location', ''))
     
+    # Filter out unwanted math sessions
     if 'MA0007' in summary or 'Mattestuga' in summary or 'Mattestuga' in description:
         return None
 
@@ -43,12 +45,23 @@ def modify_event(event):
                 event['summary'] = f"{friendly_name}, {event_type}"
                 break
     
+    # Clean up the original description (removing ID numbers)
     clean_desc = re.sub(r'ID \d+', '', description).strip().replace('\n', ' ').strip(', ')
-    desc_elements = [clean_desc] if clean_desc else []
+    
+    # Build the multi-line description list
+    desc_elements = []
+    if clean_desc:
+        desc_elements.append(clean_desc)
+    
     if found_instructors:
-        desc_elements.append(", ".join(found_instructors))
+        desc_elements.append("Lärare: " + ", ".join(found_instructors))
+    
+    if location:
+        desc_elements.append(f"Sal: {location}")
         
-    event['description'] = " | ".join(desc_elements)
+    # Join with actual newlines for the calendar UI
+    event['description'] = "\n".join(desc_elements)
+    
     return event
 
 def main():
@@ -60,9 +73,12 @@ def main():
         cal = icalendar.Calendar.from_ical(response.content)
         new_cal = icalendar.Calendar()
         
+        # Copy over calendar headers/metadata
         for key, value in cal.items():
-            new_cal.add(key, value)
+            if key != 'VEVENT':
+                new_cal.add(key, value)
 
+        # Process and add events
         for component in cal.walk('VEVENT'):
             modified = modify_event(component)
             if modified:
@@ -70,7 +86,7 @@ def main():
 
         with open(OUTPUT_FILE, 'wb') as f:
             f.write(new_cal.to_ical())
-        print(f"✨ Success! {OUTPUT_FILE} created.")
+        print(f"✨ Success! {OUTPUT_FILE} created with rooms on new lines.")
         
     except Exception as e:
         print(f"❌ Error: {e}")
