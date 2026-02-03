@@ -1,0 +1,31 @@
+name: Update Calendar
+on:
+  schedule:
+    - cron: '0 4 * * *' # Runs every day at 04:00 UTC
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run script
+        run: python update_calendar.py
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add modified_calendar.ics
+          git commit -m "Update calendar [skip ci]" || exit 0
+          git push
