@@ -21,31 +21,31 @@ NAME_MAP = {
 }
 
 def modify_event(event):
-    # --- 1. TIME ADJUSTMENT (15 Minutes) ---
-    # We adjust both DTSTART and DTEND so the duration stays the same
-    if event.get('dtstart'):
-        event['dtstart'].dt += timedelta(minutes=15)
-    if event.get('dtend'):
-        event['dtend'].dt += timedelta(minutes=15)
-
     summary = str(event.get('summary', ''))
     description = str(event.get('description', ''))
     
-    # 2. FILTERING
-    if 'MA0007' in summary or 'Mattestuga' in summary or 'Mattestuga' in description:
+    # 1. FILTERING
+    if any(x in summary or x in description for x in ['MA0007', 'Mattestuga']):
         return None
 
-    # 3. PROCESSING SUMMARY
+    # 2. TIME ADJUSTMENT (Shift Start ONLY)
+    # The end time remains unchanged, effectively shortening the duration.
+    if event.get('dtstart'):
+        event['dtstart'].dt += timedelta(minutes=15)
+    
+    # Note: event['dtend'] is intentionally left untouched here.
+
+    # 3. PROCESSING SUMMARY & INSTRUCTORS
     parts = [p.strip() for p in summary.split(',')]
     found_instructors = []
     event_type = "Gruppövning" 
     
-    if len(parts) >= 1:
+    if parts:
         code = parts[0]
         for p in parts:
             if p in NAME_MAP:
                 found_instructors.append(NAME_MAP[p])
-            elif any(keyword in p for keyword in ['Föreläsning', 'Laboration', 'Övning', 'Handledning']):
+            elif any(k in p for k in ['Föreläsning', 'Laboration', 'Övning', 'Handledning']):
                 event_type = p
 
         for prefix, friendly_name in COURSE_MAP.items():
@@ -56,12 +56,13 @@ def modify_event(event):
     # 4. CLEAN DESCRIPTION
     clean_desc = re.sub(r'ID \d+', '', description).strip().replace('\n', ' ').strip(', ')
     desc_elements = [clean_desc] if clean_desc else []
+    
     if found_instructors:
         desc_elements.append(", ".join(found_instructors))
         
     event['description'] = " | ".join(desc_elements)
     return event
-
+    
 def main():
     try:
         print("Starting calendar update with 15-minute shift...")
@@ -89,3 +90,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
