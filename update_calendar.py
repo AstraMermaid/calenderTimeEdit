@@ -25,17 +25,14 @@ def modify_event(event):
     description = str(event.get('description', ''))
     
     # 1. FILTERING
-    # Skip events related to math support or specific codes
     if any(x in summary or x in description for x in ['MA0007', 'Mattestuga']):
         return None
 
     # 2. TIME ADJUSTMENT (15-Minute Start Shift ONLY)
-    # We move the start time forward, but leave the end time as is.
     if event.get('dtstart'):
         event['dtstart'].dt += timedelta(minutes=15)
         
-    # Safety: If shifting the start makes it equal to or later than the end 
-    # (e.g., for a 15-min event), we skip the shift to keep the event valid.
+    # Safety: ensure start isn't >= end
     if event.get('dtstart') and event.get('dtend'):
         if event['dtstart'].dt >= event['dtend'].dt:
             event['dtstart'].dt -= timedelta(minutes=15)
@@ -59,7 +56,6 @@ def modify_event(event):
                 break
     
     # 4. CLEAN DESCRIPTION
-    # Remove ID numbers and clean up formatting
     clean_desc = re.sub(r'ID \d+', '', description).strip().replace('\n', ' ').strip(', ')
     desc_elements = [clean_desc] if clean_desc else []
     if found_instructors:
@@ -70,34 +66,33 @@ def modify_event(event):
 
 def main():
     try:
-        print("Starting calendar update...")
-        print(f"Fetching from: {ICS_URL}")
-        
+        print(f"Downloading calendar...")
         response = requests.get(ICS_URL)
         response.raise_for_status()
         
-        cal = icalendar.Calendar.from_ical(response.content)
+        # Load the source calendar
+        old_cal = icalendar.Calendar.from_ical(response.content)
+        
+        # Create a brand new calendar object
         new_cal = icalendar.Calendar()
         
-        # Copy global calendar metadata (VCALENDAR properties) 
-        # but skip the actual event components so we don't create duplicates
-        for key, value in cal.items():
-            if key != 'VEVENT':
-                new_cal.add(key, value)
+        # Add basic required ICS headers
+        new_cal.add('prodid', '-//Modified Calendar//mxm.dk//')
+        new_cal.add('version', '2.0')
 
-        # Process and add only the modified events
         event_count = 0
-        for component in cal.walk('VEVENT'):
+        for component in old_cal.walk('VEVENT'):
+            # modify_event modifies the component in-place or returns None
             modified = modify_event(component)
             if modified:
                 new_cal.add_component(modified)
                 event_count += 1
 
+        # Write the new calendar to the file
         with open(OUTPUT_FILE, 'wb') as f:
             f.write(new_cal.to_ical())
             
-        print(f"✨ Success! {OUTPUT_FILE} updated.")
-        print(f"Processed {event_count} events with a 15-minute start shift.")
+        print(f"✨ Success! Saved {event_count} events to {OUTPUT_FILE}")
         
     except Exception as e:
         print(f"❌ Error: {e}")
