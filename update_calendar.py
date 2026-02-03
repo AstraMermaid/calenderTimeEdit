@@ -52,13 +52,18 @@ def modify_event(event):
 
 def main():
     try:
+        print(f"Fetching calendar from {ICS_URL}...")
         response = requests.get(ICS_URL)
+        response.raise_for_status() # This will catch URL errors
+        
         cal = icalendar.Calendar.from_ical(response.content)
         new_cal = icalendar.Calendar()
         
+        # Copy headers
         for key, value in cal.items():
             new_cal.add(key, value)
 
+        # Process events
         for component in cal.walk('VEVENT'):
             modified = modify_event(component)
             if modified:
@@ -66,9 +71,11 @@ def main():
 
         with open(OUTPUT_FILE, 'wb') as f:
             f.write(new_cal.to_ical())
-        print("✨ Calendar updated successfully.")
+        print("✨ Success! modified_calendar.ics has been created.")
+        
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Error during execution: {e}")
+        exit(1) # This tells GitHub that the script failed
 
 if __name__ == "__main__":
     main()
