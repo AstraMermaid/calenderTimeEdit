@@ -57,7 +57,7 @@ def modify_event(event):
         desc_elements.append("Lärare: " + ", ".join(found_instructors))
     
     if location:
-        desc_elements.append(f"Sal: {location}")
+        desc_elements.append(f"{location}")
         
     # Join with actual newlines for the calendar UI
     event['description'] = "\n".join(desc_elements)
@@ -94,3 +94,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
