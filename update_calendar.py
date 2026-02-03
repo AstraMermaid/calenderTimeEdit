@@ -2,6 +2,7 @@ import re
 import icalendar
 import requests
 import sys
+from datetime import timedelta
 
 # --- CONFIGURATION ---
 ICS_URL = "https://cloud.timeedit.net/bth/web/sched1/ri67oQ5y6X2Z8QQ579895ZQ5ylZ135y2ZX4Y255Q827Xq5l9X0W16Tuo71XVnXol5X896oW8Z5469oogZXb8mcXX9W7W223WQXbqQ5r0ZQQbeZ6u61cn.ics"
@@ -20,14 +21,21 @@ NAME_MAP = {
 }
 
 def modify_event(event):
+    # --- 1. TIME ADJUSTMENT (15 Minutes) ---
+    # We adjust both DTSTART and DTEND so the duration stays the same
+    if event.get('dtstart'):
+        event['dtstart'].dt += timedelta(minutes=15)
+    if event.get('dtend'):
+        event['dtend'].dt += timedelta(minutes=15)
+
     summary = str(event.get('summary', ''))
     description = str(event.get('description', ''))
-    location = str(event.get('location', ''))
     
-    # Filter out unwanted math sessions
+    # 2. FILTERING
     if 'MA0007' in summary or 'Mattestuga' in summary or 'Mattestuga' in description:
         return None
 
+    # 3. PROCESSING SUMMARY
     parts = [p.strip() for p in summary.split(',')]
     found_instructors = []
     event_type = "Gruppövning" 
@@ -45,40 +53,27 @@ def modify_event(event):
                 event['summary'] = f"{friendly_name}, {event_type}"
                 break
     
-    # Clean up the original description (removing ID numbers)
+    # 4. CLEAN DESCRIPTION
     clean_desc = re.sub(r'ID \d+', '', description).strip().replace('\n', ' ').strip(', ')
-    
-    # Build the multi-line description list
-    desc_elements = []
-    if clean_desc:
-        desc_elements.append(clean_desc)
-    
+    desc_elements = [clean_desc] if clean_desc else []
     if found_instructors:
-        desc_elements.append("Lärare: " + ", ".join(found_instructors))
-    
-    if location:
-        desc_elements.append(f"{location}")
+        desc_elements.append(", ".join(found_instructors))
         
-    # Join with actual newlines for the calendar UI
-    event['description'] = "\n".join(desc_elements)
-    
+    event['description'] = " | ".join(desc_elements)
     return event
 
 def main():
     try:
-        print("Starting calendar update...")
+        print("Starting calendar update with 15-minute shift...")
         response = requests.get(ICS_URL)
         response.raise_for_status()
         
         cal = icalendar.Calendar.from_ical(response.content)
         new_cal = icalendar.Calendar()
         
-        # Copy over calendar headers/metadata
         for key, value in cal.items():
-            if key != 'VEVENT':
-                new_cal.add(key, value)
+            new_cal.add(key, value)
 
-        # Process and add events
         for component in cal.walk('VEVENT'):
             modified = modify_event(component)
             if modified:
@@ -86,7 +81,7 @@ def main():
 
         with open(OUTPUT_FILE, 'wb') as f:
             f.write(new_cal.to_ical())
-        print(f"✨ Success! {OUTPUT_FILE} created with rooms on new lines.")
+        print(f"✨ Success! {OUTPUT_FILE} updated with time shifts.")
         
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -94,4 +89,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
