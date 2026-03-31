@@ -5,16 +5,15 @@ import sys
 from datetime import timedelta
 
 # --- CONFIGURATION ---
-ICS_URL = "https://cloud.timeedit.net/bth/web/sched1/ri670Q5l6X2Z8QQ59Q81yl55y4ZZ35qoXXWY155Q227ZW569X26y48qc76729o8Z9g9lT51QcX5mnbWX3ubVbooWXWXoX8QXrouZeZQZnQ6106.ics"
+ICS_URL = "https://cloud.timeedit.net/bth/web/sched1/ri681Q2t6Z5Z9QQ5b18QQZ45y1Z736d03X6YZu5Qe97n218172868jElD6Q5j572l76Fj2826m6B282Z06089t8AC6A7362C04006C2.ics"
 OUTPUT_FILE = 'modified_calendar.ics'
 
 COURSE_MAP = {
-    'MA1497': 'Transform', 'FY1438': 'Termo',
-    'ET2632': 'Projekt 2', 'MT1517': 'Projekt 1'
+    'ET2632': 'Projekt 2','ET1531':'Reglerteknik'
 }
 
 NAME_MAP = {
-    'JCH': 'Johan Richter', 'MEO': 'Mattias Eriksson', 'WKA': 'Wlodek Kulesza',
+    'SJO':'Sven Johansson', 'WKA': 'Wlodek Kulesza',
     'RKH': 'Raisa Khamitova', 'IGE': 'Irina Gertsovich', 'JSB': 'Josef Ström',
     'CBG': 'Carolina Bergeling', 'ABR': 'Alessandro Bertoni', 'MJD': 'Majid Joshani',
     'MMU': 'Mohammed Samy Massoum'
