@@ -34,10 +34,6 @@ def modify_event(event):
     # B. The "Grupp 2" Exclusivity Rule
     # Combine all text to search for group mentions
     full_text = f"{summary} {description}".lower()
-    # If "grupp" or "group" is mentioned, but NOT "grupp 2" / "group 2", discard it.
-    if ("grupp" in full_text or "group" in full_text):
-        if "grupp 2" not in full_text and "group 2" not in full_text:
-            return None
 
     # --- 2. TIME ADJUSTMENT (Academic Quarter) ---
     if event.get('dtstart'):
