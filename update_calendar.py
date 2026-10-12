@@ -5,19 +5,34 @@ import sys
 from datetime import timedelta
 
 # --- CONFIGURATION ---
-ICS_URL = "https://cloud.timeedit.net/bth/web/sched1/ri681Q2t6Z5Z9QQ5b18QQZ45y1Z736d03X6YZu5Qe97n218172868jElD6Q5j572l76Fj2826m6B282Z06089t8AC6A7362C04006C2.ics"
+ICS_URLS = [
+    "https://cloud.timeedit.net/bth/web/sched1/ri681Q2t6Z5Z9QQ5b18QQZ45y1Z736d03X6YZu5Qe97n218172868jElD6Q5j572l76Fj2826m6B282Z06089t8AC6A7362C04006C2.ics",
+    "https://cloud.timeedit.net/bth/web/sched1/ri691Q456X1Z29Q599825XQ5yyZ430115XlY155Q417Xy6Z1Zoq1l6XXXW589Xc9Q2o8WXX2l4615XWX57oT6oW9n47W0VZo8gbu3oQequrm6cZbQbZZnQQ150.ics",
+]
 OUTPUT_FILE = 'modified_calendar.ics'
 
 COURSE_MAP = {
-    'ET2632': 'Projekt 2','ET1531':'Reglerteknik'
+    'ET2632': 'Projekt 2',
+    'ET1531': 'Reglerteknik',
+    'IY2649': 'Technology venture 1: innovation och affärsutveckling',
+    'FY2505': 'Elektromagnetisk fältteori',
+    'ET1557': 'Signaler och system, grundkurs',
+    'ET2615': 'Elkraft och energiteknik',
+    'ET2626': 'Signaler och system, fortsättningskurs',
 }
 
 NAME_MAP = {
     'SJO':'Sven Johansson', 'WKA': 'Wlodek Kulesza',
     'RKH': 'Raisa Khamitova', 'IGE': 'Irina Gertsovich', 'JSB': 'Josef Ström',
     'CBG': 'Carolina Bergeling', 'ABR': 'Alessandro Bertoni', 'MJD': 'Majid Joshani',
-    'MMU': 'Mohammed Samy Massoum'
+    'MMU': 'Mohammed Samy Massoum',
+    'YIV': 'Yevhen Ivanenko', 'MOH': 'Mojtaba Hosseini', 'HAK': 'Matilda Håkansson',
+    'KHE': 'Kennet Henningsson', 'ELO': 'Eva Lövstål', 'AKE': 'Åke Nyström',
+    'SKK': 'Siamak Khatibi',
 }
+
+EVENT_TYPES = ['Föreläsning', 'Laboration', 'Övning', 'Handledning',
+               'Seminarium', 'Workshop', 'Examination']
 
 def modify_event(event):
     # Extract existing data
@@ -55,7 +70,7 @@ def modify_event(event):
         for p in parts:
             if p in NAME_MAP:
                 found_instructors.append(NAME_MAP[p])
-            elif any(keyword in p for keyword in ['Föreläsning', 'Laboration', 'Övning', 'Handledning']):
+            elif any(keyword in p for keyword in EVENT_TYPES):
                 event_type = p
 
         # Apply friendly names from COURSE_MAP
@@ -81,24 +96,25 @@ def modify_event(event):
 
 def main():
     try:
-        print(f"Downloading calendar from TimeEdit...")
-        response = requests.get(ICS_URL)
-        response.raise_for_status()
-        
-        # Load the source calendar
-        old_cal = icalendar.Calendar.from_ical(response.content)
-        
         # Create a brand new calendar object
         new_cal = icalendar.Calendar()
         new_cal.add('prodid', '-//Modified Calendar//mxm.dk//')
         new_cal.add('version', '2.0')
 
         event_count = 0
-        for component in old_cal.walk('VEVENT'):
-            modified = modify_event(component)
-            if modified:
-                new_cal.add_component(modified)
-                event_count += 1
+        for url in ICS_URLS:
+            print("Downloading calendar from TimeEdit...")
+            response = requests.get(url)
+            response.raise_for_status()
+
+            # Load the source calendar
+            old_cal = icalendar.Calendar.from_ical(response.content)
+
+            for component in old_cal.walk('VEVENT'):
+                modified = modify_event(component)
+                if modified:
+                    new_cal.add_component(modified)
+                    event_count += 1
 
         # Write to file
         with open(OUTPUT_FILE, 'wb') as f:
@@ -112,4 +128,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
